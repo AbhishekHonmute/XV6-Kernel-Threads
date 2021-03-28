@@ -14,7 +14,7 @@
 00000000 ulib.c
 00000000 printf.c
 00000420 printint
-00000878 digits.1085
+00000878 digits.1087
 00000000 umalloc.c
 00000b60 freep
 00000b64 base
@@ -53,6 +53,7 @@
 00000300 atoi
 00000190 strlen
 000003b3 open
+00000413 clone
 000001f0 strchr
 000003db mkdir
 0000039b close
