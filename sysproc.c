@@ -13,6 +13,16 @@ sys_fork(void)
   return fork();
 }
 
+// Clone system call for kernel threads
+int
+sys_clone(void)
+{
+  int argument;
+  if (argint(0, (void*)&argument) < 0)
+    return -1;
+  return clone(argument);
+}
+
 int
 sys_exit(void)
 {
