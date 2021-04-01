@@ -6,6 +6,6 @@
 int
 main(void)
 {
-    printf(1, "Total No of system calls till now are : %d\n", clone());
+    printf(1, "Output from clone : %d\n", clone(7));
     exit();
 }

@@ -104,7 +104,6 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_clone(void);
-extern int total_calls;
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -134,7 +133,6 @@ static int (*syscalls[])(void) = {
 void
 syscall(void)
 {
-  total_calls++;
   int num;
   struct proc *curproc = myproc();
 

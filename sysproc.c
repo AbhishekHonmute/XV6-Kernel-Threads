@@ -6,12 +6,21 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
-int total_calls = 0;
 
 int
 sys_fork(void)
 {
   return fork();
+}
+
+// Clone system call for kernel threads
+int
+sys_clone(void)
+{
+  int argument;
+  if (argint(0, (void*)&argument) < 0)
+    return -1;
+  return clone(argument);
 }
 
 int
@@ -89,11 +98,4 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
-}
-
-int
-sys_clone(void)
-{
-if(total_calls == 0) return total_calls;
-else return total_calls;
 }
