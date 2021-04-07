@@ -52,7 +52,7 @@ struct proc {
   // For kernel threads
   int isthread;                // 1 for thread, 0 for process
   int threadcount;             // For parent process storing no of child threads
-  struct proc **threadslist;   // Array for storing child threads pointers
+  struct proc *threadslist[10];   // Array for storing child threads pointers
 };
 
 // Process memory is laid out contiguously, low addresses first:

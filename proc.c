@@ -199,6 +199,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  np->isthread = 0;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -223,10 +224,74 @@ fork(void)
 
 // Clone system call 
 int
-clone(int arg) 
+clone(int (*func_ptr)(void *), void *arg, void *stack) 
 {
-  cprintf("This is clone function\n");
-  return arg * arg;
+  // int *argument = (int*)(arg);
+
+  int i, pid;
+  struct proc *np;
+  struct proc *curproc = myproc();
+  uint return_add = 0xffffffff;
+  uint stk_ptr;
+
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+  // Copy process state from proc.
+  if((np->pgdir = copyuvm_clone(curproc->pgdir, curproc->sz)) == 0){
+    kfree(np->kstack);
+    np->kstack = 0;
+    np->state = UNUSED;
+    return -1;
+  }
+  // np->stack = stack;
+  np->sz = PGSIZE;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;
+  np->isthread = 1;
+  
+  // Clear %eax so that fork returns 0 in the child.
+  //np->tf->eax = 0;
+
+  np->tf->eip = (uint)func_ptr;
+  // adding return value to stack
+  stk_ptr = (uint)stack + PGSIZE;
+  np->tf->ebp = (uint)stack;
+  stk_ptr -= sizeof(uint*);
+  cprintf("hello\n");
+  if(copyout(np->pgdir, stk_ptr, &return_add, sizeof(uint)) < 0) {
+    cprintf("hey\n");
+    return -2;
+  }
+  np->tf->esp = stk_ptr;
+
+  // to-do : add arguments to stack
+  stk_ptr -= sizeof(int*);
+  if(copyout(np->pgdir, stk_ptr, arg, sizeof(int*)) < 0)
+    return -3;
+  np->tf->esp = stk_ptr;
+
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  pid = np->pid;
+
+  curproc->threadslist[curproc->threadcount] = np;
+  curproc->threadcount += 1;
+
+  acquire(&ptable.lock);
+
+  np->state = RUNNABLE;
+  
+
+  release(&ptable.lock);
+
+  return pid;
 }
 
 // Exit the current process.  Does not return.
@@ -419,6 +484,7 @@ forkret(void)
 
   // Return to "caller", actually trapret (see allocproc).
 }
+
 
 // Atomically release lock and sleep on chan.
 // Reacquires lock when awakened.
