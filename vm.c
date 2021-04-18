@@ -355,8 +355,6 @@ copyuvm_clone(pde_t *pgdir, uint sz)
 
   if((d = setupkvm()) == 0)
     return 0;
-  
-  // memmove(d, pgdir, PGSIZE);
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
@@ -368,7 +366,7 @@ copyuvm_clone(pde_t *pgdir, uint sz)
     // if((mem = kalloc()) == 0)
     //   goto bad;
     // memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(pa), flags) < 0) {
+    if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0) {
       //kfree(mem);
       goto bad;
     }
@@ -403,7 +401,6 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 {
   char *buf, *pa0;
   uint n, va0;
-
   buf = (char*)p;
   while(len > 0){
     va0 = (uint)PGROUNDDOWN(va);

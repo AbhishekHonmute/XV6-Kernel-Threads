@@ -200,6 +200,7 @@ fork(void)
   np->parent = curproc;
   *np->tf = *curproc->tf;
   np->isthread = 0;
+  np->threadcount = 0;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -222,55 +223,47 @@ fork(void)
   return pid;
 }
 
-// Clone system call 
+// Clone system call to create threads
 int
-clone(int (*func_ptr)(void *), void *arg, void *stack) 
+clone(void (*func_ptr)(void *), void *stack, void *arg) 
 {
-  // int *argument = (int*)(arg);
-
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
-  uint return_add = 0xffffffff;
-  uint stk_ptr;
+  uint ustack[2], sp;
+  // int ret;
 
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
   }
+  
   // Copy process state from proc.
-  if((np->pgdir = copyuvm_clone(curproc->pgdir, curproc->sz)) == 0){
+  if((np->pgdir = copyuvm_clone(curproc->pgdir, curproc->sz)) == 0) {
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
     return -1;
   }
-  // np->stack = stack;
-  np->sz = PGSIZE;
-  np->parent = curproc;
+  
+  np->sz = curproc->sz;
+  np->threadparent = curproc;
   *np->tf = *curproc->tf;
   np->isthread = 1;
   
-  // Clear %eax so that fork returns 0 in the child.
-  //np->tf->eax = 0;
-
+  // Clear %eax so that clone returns 0 in the child.
+  np->tf->eax = 0;
   np->tf->eip = (uint)func_ptr;
-  // adding return value to stack
-  stk_ptr = (uint)stack + PGSIZE;
-  np->tf->ebp = (uint)stack;
-  stk_ptr -= sizeof(uint*);
-  cprintf("hello\n");
-  if(copyout(np->pgdir, stk_ptr, &return_add, sizeof(uint)) < 0) {
-    cprintf("hey\n");
-    return -2;
-  }
-  np->tf->esp = stk_ptr;
+  sp = (uint)stack + PGSIZE;
+  np->tf->esp = sp;
 
-  // to-do : add arguments to stack
-  stk_ptr -= sizeof(int*);
-  if(copyout(np->pgdir, stk_ptr, arg, sizeof(int*)) < 0)
-    return -3;
-  np->tf->esp = stk_ptr;
+  ustack[0] = 0xffffffff;
+  ustack[1] = (uint)arg;
+  
+  np->tf->esp = np->tf->esp - 8;
+  if(copyout(np->pgdir, np->tf->esp, ustack, 8) < 0) {
+    return -1;
+  }
 
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i])
@@ -293,6 +286,57 @@ clone(int (*func_ptr)(void *), void *arg, void *stack)
 
   return pid;
 }
+
+// Join system call
+int
+join(void **stack) 
+{
+  // int a[1] = {5};
+  // *stack = (void*)(a);
+  // cprintf("This is join : %d\n", ((int*)(*stack))[0]);
+  // return 0;
+
+  struct proc *p;
+  int havekids, pid;
+  struct proc *curproc = myproc();
+  
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for exited children threads.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->threadparent != curproc || p->isthread != 1 )
+        continue;
+      havekids = 1;
+      cprintf("Join : thread id : %d\n", p->pid);
+      if(p->state == ZOMBIE){
+        // Found one.
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        *stack = (void*)p->tf->ebp;
+        p->state = UNUSED;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+}
+
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
