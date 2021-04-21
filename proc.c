@@ -254,6 +254,7 @@ clone(void (*func_ptr)(void *), void *stack, void *arg)
   // Clear %eax so that clone returns 0 in the child.
   np->tf->eax = 0;
   np->tf->eip = (uint)func_ptr;
+  np->tf->ebp = (uint)stack;
   sp = (uint)stack + PGSIZE;
   np->tf->esp = sp;
 
@@ -274,14 +275,12 @@ clone(void (*func_ptr)(void *), void *stack, void *arg)
 
   pid = np->pid;
 
-  curproc->threadslist[curproc->threadcount] = np;
   curproc->threadcount += 1;
 
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
   
-
   release(&ptable.lock);
 
   return pid;
@@ -299,18 +298,21 @@ join(void **stack)
   struct proc *p;
   int havekids, pid;
   struct proc *curproc = myproc();
-  
+  cprintf("Cur proc id : %d\n", curproc->pid);
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for exited children threads.
     havekids = 0;
+    cprintf("#\n");
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      cprintf("@\n");
       if(p->threadparent != curproc || p->isthread != 1 )
         continue;
       havekids = 1;
       cprintf("Join : thread id : %d\n", p->pid);
       if(p->state == ZOMBIE){
         // Found one.
+        cprintf("Found zombie thread ID : %d\n", p->pid);
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
@@ -319,7 +321,7 @@ join(void **stack)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
-        *stack = (void*)p->tf->ebp;
+        // *stack = (void*)p->tf->ebp;
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;
@@ -331,7 +333,7 @@ join(void **stack)
       release(&ptable.lock);
       return -1;
     }
-
+    cprintf("Sleeping\n");
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }
@@ -375,6 +377,12 @@ exit(void)
       p->parent = initproc;
       if(p->state == ZOMBIE)
         wakeup1(initproc);
+    }
+    if(p->isthread && p->threadparent == curproc) {
+      p->parent = initproc;
+      if(p->state == ZOMBIE) {
+        wakeup1(initproc);
+      }
     }
   }
 
@@ -536,7 +544,9 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
-  
+  // if(p->pid == 4) {
+  //   cprintf("hello\n");
+  // }
   if(p == 0)
     panic("sleep");
 
