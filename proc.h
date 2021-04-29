@@ -40,8 +40,8 @@ struct proc {
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
   enum procstate state;        // Process state
-  int pid;                     // Process ID
-  struct proc *parent;         // Parent process
+  int pid;                     // Process ID also represents thread group ID
+  struct proc *parent;         // Parent process also for a thread it represents main thread of a process
   struct trapframe *tf;        // Trap frame for current syscall
   struct context *context;     // swtch() here to run process
   void *chan;                  // If non-zero, sleeping on chan
@@ -51,9 +51,15 @@ struct proc {
   char name[16];               // Process name (debugging)
   // For kernel threads
   int isthread;                // 1 for thread, 0 for process
-  int threadcount;             // For parent process storing no of child threads
-  struct proc *threadparent;   // Pointing to parent thread
-  
+  int ustack;                  // pointer to user stack
+  // int tid;                     // thread id unique in a thread group
+  int tgid;                    // thread group ID
+  // struct proc *threadparent;   // Points to leader of a thread group
+  int CLONE_FILES;
+  int CLONE_FS;
+  int CLONE_PARENT;
+  int CLONE_VM;
+  int CLONE_THREAD; // flags
 };
 
 // Process memory is laid out contiguously, low addresses first:

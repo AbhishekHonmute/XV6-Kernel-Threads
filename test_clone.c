@@ -28,14 +28,15 @@ main()
     n[1] = 9;
     // ((uint*)stack)[0] = stack_add; 
     void (*funptr)(int*) = &thread_function;
+    printf(1, "funptr : %d\n", (uint)funptr);
     printf(1, "thread id : %d\n", (uint)n);
-    thread_id = clone((void*)funptr, stack, (void*)n);
+    thread_id = clone((void*)funptr, stack, 24, (void*)n);
     // thread_id = clone((void*)funptr, stack, (void*)n);
     join(&join_stack);
     // join(&join_stack);
     printf(1, "thread ID : test_clone : %d\n", thread_id);
-    printf(1, "join_stack : %d\n", &stack);
-    printf(1, "join output : %d\n", ((int*)stack)[0]);
+    // printf(1, "join_stack : %d\n", &stack);
+    // printf(1, "join output : %d\n", ((int*)stack)[0]);
     sleep(200);
     exit();
 }
