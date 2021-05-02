@@ -35,25 +35,30 @@ sys_clone(void)
 int
 sys_tkill(void)
 {
-  int pid;
-  if(argint(0, &pid) < 0)
+  int tid;
+  if(argint(0, &tid) < 0)
     return -1;
-  return tkill(pid);
+  return tkill(tid);
 }
 
 int
 sys_join(void)
 {
-  void *stack;
-  if (argptr(0, (void*)&stack, sizeof(void*)) < 0) 
+  int tid;
+  if(argint(0, &tid) < 0)
     return -1;
-  return join(stack);
+  return join(tid);
 }
 
 int
 sys_gettid(void)
 {
-  return myproc()->pid;
+  return myproc()->tid;
+}
+
+int
+sys_getppid(void) {
+  return (myproc()->parent)->pid;
 }
 
 int
@@ -82,9 +87,8 @@ sys_kill(void)
 int
 sys_getpid(void)
 {
-  return myproc()->tgid;
+  return myproc()->pid;
 }
-
 
 
 int

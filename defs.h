@@ -121,9 +121,11 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 int             clone(void (*func_ptr)(void *), void *stack, int flags, void *arg);
-int             join(void **stack);
-int             tkill(int pid);
-int             sys_gettid(void);
+int             join(int tid);
+int             tkill(int tid);
+int             gettid(void);
+int             getppid(void);
+int             getcwdinum(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

@@ -11,7 +11,7 @@ int
 exec(char *path, char **argv)
 {
   char *s, *last;
-  int i, off;
+  int i, j, off;
   uint argc, sz, sp, ustack[3+MAXARG+1];
   struct elfhdr elf;
   struct inode *ip;
@@ -19,7 +19,47 @@ exec(char *path, char **argv)
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
 
+  // acquire(&ptable.lock);
+  // if(curproc->isthread == 1) {
+  //   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  //     if(curproc->pid == p->pid) {
+  //       if(p->tid == p->pid){
+  //         curproc = p;
+  //       } else {
+  //         tkill(p->tid);
+  //       }
+  //     }
+  //   }
+  // }
+  // release(&ptable.lock);
+
   begin_op();
+
+  // unshare the ofile if shares
+  for(i = 0; i < NPROC; i++) {
+    if(curproc->ofileshare[i] != 0) {
+      for(j = 0; j < NPROC; j++) {
+        if((curproc->ofileshare[i])->ofileshare[j] == curproc) {
+          (curproc->ofileshare[i])->ofileshare[j] = 0;
+          break;
+        }
+      }
+      curproc->ofileshare[i] = 0;
+    }
+  }
+
+  // unshare cwd if shared
+  for(i = 0; i < NPROC; i++) {
+    if(curproc->cwdshare[i] != 0) {
+      for(j = 0; j < NPROC; j++) {
+        if((curproc->cwdshare[i])->cwdshare[j] == curproc) {
+          (curproc->cwdshare[i])->cwdshare[j] = 0;
+          break;
+        }
+      }
+      curproc->cwdshare[i] = 0;
+    }
+  }
 
   if((ip = namei(path)) == 0){
     end_op();

@@ -35,6 +35,24 @@ argfd(int n, int *pfd, struct file **pf)
   return 0;
 }
 
+// handle ofileshare array in struct proc when file opens
+void
+ofileshareopen(struct proc *curproc, struct file *f, int fd)
+{
+  int i;
+  for(i = 0; i < NPROC; i++) {
+    if(curproc->ofileshare[i] != 0 && curproc->ofileshare[i] != curproc) {
+      if((curproc->ofileshare[i])->ofile[fd] == f) {
+        return;
+      }
+      (curproc->ofileshare[i])->ofile[fd] = f;
+      ofileshareopen(curproc->ofileshare[i], f, fd);
+    }
+  }
+  return;
+}
+
+
 // Allocate a file descriptor for the given file.
 // Takes over file reference from caller on success.
 static int
@@ -46,6 +64,7 @@ fdalloc(struct file *f)
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd] == 0){
       curproc->ofile[fd] = f;
+      ofileshareopen(curproc, f, fd);
       return fd;
     }
   }
@@ -90,16 +109,34 @@ sys_write(void)
   return filewrite(f, p, n);
 }
 
+// handles the ofileshare array in struct proc when file closes
+void
+ofileshareclose(struct proc *curproc, int fd)
+{
+  int i;
+  // cprintf("hello\n");
+  for(i = 0; i < NPROC; i++) {
+    if(curproc->ofileshare[i] != 0 && curproc->ofileshare[i] != curproc) {
+      if((curproc->ofileshare[i])->ofile[fd] == 0) {
+        return;
+      }
+      (curproc->ofileshare[i])->ofile[fd] = 0;
+      ofileshareclose(curproc->ofileshare[i], fd);
+    }
+  }
+  return;
+}
+
 int
 sys_close(void)
 {
   int fd;
   struct file *f;
-
   if(argfd(0, &fd, &f) < 0)
     return -1;
   myproc()->ofile[fd] = 0;
   fileclose(f);
+  ofileshareclose(myproc(), fd);
   return 0;
 }
 
@@ -368,6 +405,24 @@ sys_mknod(void)
   return 0;
 }
 
+// handles the pwdshare array in struct proc when cwd changes
+void
+cwdshare(struct proc *curproc, struct inode *ip)
+{
+  int i;
+  for(i = 0; i < NPROC; i++) {
+    if(curproc->cwdshare[i] != 0 && curproc->cwdshare[i] != curproc) {
+      if((curproc->cwdshare[i])->cwd == ip) {
+        return;
+      }
+      (curproc->cwdshare[i])->cwd = ip;
+      cwdshare(curproc->cwdshare[i], ip);
+    }
+  }
+  return;
+}
+
+
 int
 sys_chdir(void)
 {
@@ -389,6 +444,7 @@ sys_chdir(void)
   iunlock(ip);
   iput(curproc->cwd);
   end_op();
+  cwdshare(curproc, ip);
   curproc->cwd = ip;
   return 0;
 }
@@ -441,4 +497,11 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
+}
+
+
+int
+sys_getcwdinum(void)
+{
+  return getcwdinum();
 }

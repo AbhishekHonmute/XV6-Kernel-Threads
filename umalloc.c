@@ -21,6 +21,52 @@ typedef union header Header;
 static Header base;
 static Header *freep;
 
+
+
+
+
+THREAD pthread_create(void(*fcn)(void *), void *arg, int flags){
+    int stack_addr;
+    void* stack = malloc(4096);
+    stack_addr = (uint)stack;
+    int ret = clone(fcn, stack, flags, arg);
+
+    THREAD thread;
+    thread.tid = ret;
+    thread.stack = (void*)stack_addr;
+    return thread;
+
+}
+
+int pthread_join(THREAD t){
+    if(join(t.tid) != t.tid){
+        free(t.stack);
+        return -1;
+    }
+    free(t.stack);
+    return t.tid;
+}
+
+int pthread_kill(int tid){
+  return tkill(tid);
+}
+
+int get_pid(void){
+  return getpid();
+}
+
+int get_tid(void){
+  return gettid();
+}
+
+int get_ppid() {
+  return getppid();
+}
+
+int thread_getcwdinum(void) {
+  return getcwdinum();
+}
+
 void
 free(void *ap)
 {

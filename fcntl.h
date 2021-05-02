@@ -4,7 +4,7 @@
 #define O_CREATE  0x200
 
 #define CLONE_FILES     1
-#define CLONE_DIRECT    2
-#define CLONE_THREAD    4
-#define CLONE_VM        8
+#define CLONE_FS        2
+#define CLONE_VM        4
+#define CLONE_THREAD    8
 #define CLONE_PARENT    16

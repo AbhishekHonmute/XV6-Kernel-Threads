@@ -53,8 +53,11 @@ struct proc {
   int isthread;                // 1 for thread, 0 for process
   int ustack;                  // pointer to user stack
   // int tid;                     // thread id unique in a thread group
-  int tgid;                    // thread group ID
-  // struct proc *threadparent;   // Points to leader of a thread group
+  int tid;                     // thread ID
+  struct proc *threadparent;   // Points to leader of a thread group
+  struct proc *ofileshare[NPROC]; // with these processes cur proc shares ofile
+  struct proc *cwdshare[NPROC];   // with these processes cur proc shares file system 
+  struct proc *joinproc;  // joined and waiting for this processes threads
   int CLONE_FILES;
   int CLONE_FS;
   int CLONE_PARENT;

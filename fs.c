@@ -668,3 +668,11 @@ nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
 }
+
+
+int
+getcwdinum(void) {
+  struct inode *in;
+  in = myproc()->cwd;
+  return in->inum;
+}

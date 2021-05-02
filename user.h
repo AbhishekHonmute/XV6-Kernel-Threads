@@ -24,9 +24,11 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int clone(void (*func_ptr)(void *), void *stack, int flags, void *arg);
-int join(void** stack);
-int tkill(int pid);
+int join(int tid);
+int tkill(int tid);
 int gettid(void);
+int getppid(void);
+int getcwdinum(void);
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -41,3 +43,17 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+
+// For Kernel Threads
+typedef struct THREAD{
+    int tid;
+    void* stack;
+}THREAD;
+
+THREAD pthread_create(void (*fcn)(void *), void *arg, int flags);
+int pthread_join(THREAD t);
+int get_pid(void);
+int get_tid(void);
+int pthread_kill(int tid);
+int thread_getcwdinum(void);
